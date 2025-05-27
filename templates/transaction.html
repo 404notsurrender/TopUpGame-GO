@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check Transaction Status</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#6B7280',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex justify-between">
+                <div class="flex space-x-7">
+                    <div>
+                        <a href="/" class="flex items-center py-4">
+                            <span class="font-semibold text-gray-500 text-lg">Top Up Game</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Transaction Status Section -->
+    <div class="max-w-2xl mx-auto px-4 py-12">
+        <div class="bg-white shadow-lg rounded-lg p-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Check Transaction Status</h2>
+            
+            <!-- Search Form -->
+            <form id="searchForm" class="mb-8">
+                <div class="flex gap-4">
+                    <input type="text" id="invoiceInput" 
+                           placeholder="Enter Invoice Number" 
+                           class="flex-1 shadow-sm rounded-md border-gray-300 focus:border-primary focus:ring-primary py-2 px-4">
+                    <button type="submit" 
+                            class="bg-primary text-white py-2 px-6 rounded-md hover:bg-blue-600">
+                        Check Status
+                    </button>
+                </div>
+            </form>
+
+            <!-- Transaction Details -->
+            <div id="transactionDetails" class="hidden">
+                <div class="border-t border-gray-200 pt-6">
+                    <dl class="divide-y divide-gray-200">
+                        <div class="py-4 grid grid-cols-3 gap-4">
+                            <dt class="text-sm font-medium text-gray-500">Invoice Number</dt>
+                            <dd class="text-sm text-gray-900 col-span-2" id="invoiceNumber">-</dd>
+                        </div>
+                        <div class="py-4 grid grid-cols-3 gap-4">
+                            <dt class="text-sm font-medium text-gray-500">Status</dt>
+                            <dd class="text-sm font-semibold col-span-2" id="status">-</dd>
+                        </div>
+                        <div class="py-4 grid grid-cols-3 gap-4">
+                            <dt class="text-sm font-medium text-gray-500">Game ID</dt>
+                            <dd class="text-sm text-gray-900 col-span-2" id="gameId">-</dd>
+                        </div>
+                        <div class="py-4 grid grid-cols-3 gap-4">
+                            <dt class="text-sm font-medium text-gray-500">Game Server</dt>
+                            <dd class="text-sm text-gray-900 col-span-2" id="gameServer">-</dd>
+                        </div>
+                        <div class="py-4 grid grid-cols-3 gap-4">
+                            <dt class="text-sm font-medium text-gray-500">Amount</dt>
+                            <dd class="text-sm text-gray-900 col-span-2" id="amount">-</dd>
+                        </div>
+                        <div class="py-4 grid grid-cols-3 gap-4">
+                            <dt class="text-sm font-medium text-gray-500">Created At</dt>
+                            <dd class="text-sm text-gray-900 col-span-2" id="createdAt">-</dd>
+                        </div>
+                        <div class="py-4 grid grid-cols-3 gap-4">
+                            <dt class="text-sm font-medium text-gray-500">Updated At</dt>
+                            <dd class="text-sm text-gray-900 col-span-2" id="updatedAt">-</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Error Message -->
+            <div id="errorMessage" class="hidden text-red-600 text-center py-4"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('searchForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const invoice = document.getElementById('invoiceInput').value.trim();
+            if (!invoice) {
+                showError('Please enter an invoice number');
+                return;
+            }
+
+            fetch(`/api/transaction/${invoice}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        showError(data.error);
+                    } else {
+                        showTransactionDetails(data.transaction);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showError('Failed to fetch transaction details');
+                });
+        });
+
+        function showTransactionDetails(transaction) {
+            document.getElementById('errorMessage').classList.add('hidden');
+            document.getElementById('transactionDetails').classList.remove('hidden');
+
+            document.getElementById('invoiceNumber').textContent = transaction.invoice;
+            document.getElementById('status').textContent = transaction.status;
+            document.getElementById('gameId').textContent = transaction.game_id;
+            document.getElementById('gameServer').textContent = transaction.game_server;
+            document.getElementById('amount').textContent = `Rp ${transaction.amount.toLocaleString()}`;
+            document.getElementById('createdAt').textContent = new Date(transaction.created_at).toLocaleString();
+            document.getElementById('updatedAt').textContent = new Date(transaction.updated_at).toLocaleString();
+
+            // Set status color
+            const statusElement = document.getElementById('status');
+            statusElement.className = 'text-sm font-semibold col-span-2 ' + getStatusColor(transaction.status);
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+            document.getElementById('transactionDetails').classList.add('hidden');
+        }
+
+        function getStatusColor(status) {
+            switch (status) {
+                case 'success':
+                    return 'text-green-600';
+                case 'pending':
+                    return 'text-yellow-600';
+                case 'failed':
+                    return 'text-red-600';
+                default:
+                    return 'text-gray-600';
+            }
+        }
+
+        // Auto-check status if invoice is in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const invoiceParam = urlParams.get('invoice');
+        if (invoiceParam) {
+            document.getElementById('invoiceInput').value = invoiceParam;
+            document.getElementById('searchForm').dispatchEvent(new Event('submit'));
+        }
+    </script>
+</body>
+</html>

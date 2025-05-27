@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#6B7280',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between">
+                <div class="flex space-x-7">
+                    <a href="/admin" class="flex items-center py-4">
+                        <span class="font-semibold text-gray-500 text-lg">Admin Dashboard</span>
+                    </a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="syncProducts()" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600">
+                        Sync Products
+                    </button>
+                    <button onclick="logout()" class="py-2 px-4 bg-red-500 text-white rounded hover:bg-red-600">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Tabs -->
+        <div class="border-b border-gray-200 mb-8">
+            <nav class="-mb-px flex space-x-8">
+                <button onclick="showTab('products')" 
+                        class="tab-button border-b-2 border-transparent py-4 px-1 text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                        id="products-tab">
+                    Products
+                </button>
+                <button onclick="showTab('transactions')" 
+                        class="tab-button border-b-2 border-transparent py-4 px-1 text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                        id="transactions-tab">
+                    Transactions
+                </button>
+            </nav>
+        </div>
+
+        <!-- Products Tab -->
+        <div id="products-content" class="tab-content hidden">
+            <div class="flex justify-between mb-6">
+                <h2 class="text-2xl font-bold text-gray-900">Products</h2>
+                <button onclick="openAddProductModal()" 
+                        class="bg-primary text-white py-2 px-4 rounded hover:bg-blue-600">
+                    Add Product
+                </button>
+            </div>
+            <div class="bg-white shadow overflow-hidden sm:rounded-md">
+                <ul id="productList" class="divide-y divide-gray-200"></ul>
+            </div>
+        </div>
+
+        <!-- Transactions Tab -->
+        <div id="transactions-content" class="tab-content hidden">
+            <div class="flex justify-between mb-6">
+                <h2 class="text-2xl font-bold text-gray-900">Transactions</h2>
+                <div class="flex gap-4">
+                    <select id="statusFilter" onchange="loadTransactions()" 
+                            class="rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary">
+                        <option value="">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="success">Success</option>
+                        <option value="failed">Failed</option>
+                    </select>
+                </div>
+            </div>
+            <div class="bg-white shadow overflow-hidden sm:rounded-md">
+                <ul id="transactionList" class="divide-y divide-gray-200"></ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Product Modal -->
+    <div id="addProductModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Add New Product</h3>
+            <form id="addProductForm">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Name</label>
+                    <input type="text" name="name" required
+                           class="shadow-sm rounded-md w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-primary focus:border-primary">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Category</label>
+                    <input type="text" name="category" required
+                           class="shadow-sm rounded-md w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-primary focus:border-primary">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Price</label>
+                    <input type="number" name="price" required
+                           class="shadow-sm rounded-md w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-primary focus:border-primary">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">SKU</label>
+                    <input type="text" name="sku" required
+                           class="shadow-sm rounded-md w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-primary focus:border-primary">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Description</label>
+                    <textarea name="description" rows="3"
+                              class="shadow-sm rounded-md w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-primary focus:border-primary"></textarea>
+                </div>
+                <div class="flex justify-end gap-4">
+                    <button type="button" onclick="closeAddProductModal()"
+                            class="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="bg-primary text-white py-2 px-4 rounded hover:bg-blue-600">
+                        Add Product
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/login';
+        }
+
+        // Show products tab by default
+        showTab('products');
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('border-primary', 'text-primary');
+            });
+
+            document.getElementById(`${tabName}-content`).classList.remove('hidden');
+            document.getElementById(`${tabName}-tab`).classList.add('border-primary', 'text-primary');
+
+            if (tabName === 'products') {
+                loadProducts();
+            } else if (tabName === 'transactions') {
+                loadTransactions();
+            }
+        }
+
+        function loadProducts() {
+            fetch('/api/admin/products', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const productList = document.getElementById('productList');
+                productList.innerHTML = '';
+                data.products.forEach(product => {
+                    productList.appendChild(createProductItem(product));
+                });
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function loadTransactions() {
+            const status = document.getElementById('statusFilter').value;
+            let url = '/api/admin/transactions';
+            if (status) {
+                url += `?status=${status}`;
+            }
+
+            fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const transactionList = document.getElementById('transactionList');
+                transactionList.innerHTML = '';
+                data.transactions.forEach(transaction => {
+                    transactionList.appendChild(createTransactionItem(transaction));
+                });
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function createProductItem(product) {
+            const li = document.createElement('li');
+            li.className = 'px-6 py-4';
+            li.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-semibold">${product.name}</h3>
+                        <p class="text-gray-500">${product.category}</p>
+                        <p class="text-primary font-bold">Rp ${product.price.toLocaleString()}</p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <button onclick="toggleProductStatus(${product.id}, ${!product.is_active})"
+                                class="py-2 px-4 rounded ${product.is_active ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'} text-white">
+                            ${product.is_active ? 'Deactivate' : 'Activate'}
+                        </button>
+                    </div>
+                </div>
+            `;
+            return li;
+        }
+
+        function createTransactionItem(transaction) {
+            const li = document.createElement('li');
+            li.className = 'px-6 py-4';
+            li.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500">Invoice: ${transaction.invoice}</p>
+                        <p class="text-sm">Game ID: ${transaction.game_id}</p>
+                        <p class="text-sm">Amount: Rp ${transaction.amount.toLocaleString()}</p>
+                        <p class="text-sm">Created: ${new Date(transaction.created_at).toLocaleString()}</p>
+                    </div>
+                    <div class="flex flex-col items-end">
+                        <span class="px-2 py-1 rounded text-sm font-semibold ${getStatusClass(transaction.status)}">
+                            ${transaction.status}
+                        </span>
+                    </div>
+                </div>
+            `;
+            return li;
+        }
+
+        function getStatusClass(status) {
+            switch (status) {
+                case 'success':
+                    return 'bg-green-100 text-green-800';
+                case 'pending':
+                    return 'bg-yellow-100 text-yellow-800';
+                case 'failed':
+                    return 'bg-red-100 text-red-800';
+                default:
+                    return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        function syncProducts() {
+            fetch('/api/admin/products/sync', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Products synced successfully');
+                loadProducts();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to sync products');
+            });
+        }
+
+        function toggleProductStatus(productId, newStatus) {
+            fetch(`/api/admin/products/${productId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ is_active: newStatus })
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadProducts();
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function openAddProductModal() {
+            document.getElementById('addProductModal').classList.remove('hidden');
+        }
+
+        function closeAddProductModal() {
+            document.getElementById('addProductModal').classList.add('hidden');
+            document.getElementById('addProductForm').reset();
+        }
+
+        document.getElementById('addProductForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = {
+                name: formData.get('name'),
+                category: formData.get('category'),
+                price: parseFloat(formData.get('price')),
+                sku: formData.get('sku'),
+                description: formData.get('description')
+            };
+
+            fetch('/api/admin/products', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                closeAddProductModal();
+                loadProducts();
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        }
+    </script>
+</body>
+</html>

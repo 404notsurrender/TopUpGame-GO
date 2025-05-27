@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .title }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#6B7280',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex justify-between">
+                <div class="flex space-x-7">
+                    <div>
+                        <a href="/" class="flex items-center py-4">
+                            <span class="font-semibold text-gray-500 text-lg">Top Up Game</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <a href="/login" class="py-2 px-4 text-gray-500 hover:text-gray-700">Login</a>
+                    <a href="/register" class="py-2 px-4 bg-primary text-white rounded hover:bg-blue-600">Register</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="py-12 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="lg:text-center">
+                <h2 class="text-base text-primary font-semibold tracking-wide uppercase">Top Up Game</h2>
+                <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+                    Fast and Secure Game Top Up
+                </p>
+                <p class="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
+                    Get instant top-up for your favorite games at the best prices.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product List -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="productList">
+            <!-- Products will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div id="checkoutModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Checkout</h3>
+                <div class="mt-2 px-7 py-3">
+                    <form id="checkoutForm">
+                        <input type="hidden" id="productId">
+                        <div class="mb-4">
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="gameId">
+                                Game ID
+                            </label>
+                            <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                                   id="gameId" type="text" required>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="gameServer">
+                                Game Server
+                            </label>
+                            <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                                   id="gameServer" type="text" required>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="paymentMethod">
+                                Payment Method
+                            </label>
+                            <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                                    id="paymentMethod" required>
+                                <option value="bank_transfer">Bank Transfer</option>
+                                <option value="ewallet">E-Wallet</option>
+                                <option value="credit_card">Credit Card</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center justify-between mt-4">
+                            <button type="button" onclick="closeCheckoutModal()" 
+                                    class="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600">
+                                Cancel
+                            </button>
+                            <button type="submit" 
+                                    class="bg-primary text-white py-2 px-4 rounded hover:bg-blue-600">
+                                Confirm Purchase
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load products
+        fetch('/api/products')
+            .then(response => response.json())
+            .then(data => {
+                const productList = document.getElementById('productList');
+                data.products.forEach(product => {
+                    const card = createProductCard(product);
+                    productList.appendChild(card);
+                });
+            })
+            .catch(error => console.error('Error loading products:', error));
+
+        function createProductCard(product) {
+            const div = document.createElement('div');
+            div.className = 'bg-white rounded-lg shadow-md p-6';
+            div.innerHTML = `
+                <h3 class="text-lg font-semibold text-gray-900">${product.name}</h3>
+                <p class="text-gray-500 mt-2">${product.description || 'No description available'}</p>
+                <div class="mt-4">
+                    <span class="text-primary font-bold">Rp ${product.price.toLocaleString()}</span>
+                </div>
+                <button onclick="openCheckoutModal(${product.id})" 
+                        class="mt-4 w-full bg-primary text-white py-2 px-4 rounded hover:bg-blue-600">
+                    Buy Now
+                </button>
+            `;
+            return div;
+        }
+
+        function openCheckoutModal(productId) {
+            document.getElementById('productId').value = productId;
+            document.getElementById('checkoutModal').classList.remove('hidden');
+        }
+
+        function closeCheckoutModal() {
+            document.getElementById('checkoutModal').classList.add('hidden');
+        }
+
+        document.getElementById('checkoutForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const data = {
+                product_id: parseInt(document.getElementById('productId').value),
+                game_id: document.getElementById('gameId').value,
+                game_server: document.getElementById('gameServer').value,
+                method: document.getElementById('paymentMethod').value
+            };
+
+            fetch('/api/checkout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert(`Checkout successful! Your invoice number is: ${data.transaction.invoice}`);
+                    closeCheckoutModal();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to process checkout. Please try again.');
+            });
+        });
+    </script>
+</body>
+</html>
